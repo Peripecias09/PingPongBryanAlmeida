@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ping Pong</title>
+<style>
+    body {
+        background-color: black;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 100vh;
+        margin: 0;
+        font-family: Arial;
+        color: white;
+    }
+    canvas {
+        border: 8px solid white;
+        background: black;
+    }
+    #menu {
+        margin-bottom: 10px;
+    }
+    button {
+        margin: 5px;
+        padding: 8px 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+</style>
+</head>
+
+<body>
+<h2>Ping Pong</h2>
+
+<div id="menu">
+    <span>Selecione a dificuldade que quiser:</span>
+    <button onclick="iniciarJogo('fácil')">Easy</button>
+    <button onclick="iniciarJogo('médio')">Normal</button>
+    <button onclick="iniciarJogo('difícil')">Hard</button>
+</div>
+
+<canvas id="telaJogo" width="600" height="400"></canvas>
+
+<script>
+const tela = document.getElementById("telaJogo");
+const contexto = tela.getContext("2d");
+
+let dificuldade = 'médio';
+let numDificuldade = 0.1;
+
+const larguraRaquete = 10;
+const alturaRaquete = 80;
+const raioBola = 7;
+
+let jogador1, cpu;
+let bolaX, bolaY;
+let velocidadeBolaX, velocidadeBolaY;
+let pontosJogador = 0;
+let pontosCPU = 0;
+let jogoAtivo = false;
+
+// Sons
+const somRaquete = new Audio('\A-8-bit-explosion-10-340462.mp3');
+const somPonto = new Audio('\A-8-bit-powerup-6768.mp3');
+const somVitoria = new Audio('\level-up-enhancement-8-bit-retro-sound-effect-153002.mp3');
+
+document.addEventListener('mousemove', (evento) => {
+    let ret = tela.getBoundingClientRect();
+    jogador1 = evento.clientY - ret.top - alturaRaquete / 2;
+
+    // Impede ultrapassar os limites da tela
+    if (jogador1 < 0) jogador1 = 0;
+    if (jogador1 + alturaRaquete > tela.height) jogador1 = tela.height - alturaRaquete;
+});
+
+    //raquete
+function raquete(x, y, largura, altura, cor) {
+    contexto.fillStyle = cor;
+    contexto.fillRect(x, y, largura, altura);
+}
+    //bola
+function bola(x, y, raio, cor) {
+    contexto.fillStyle = cor;
+    contexto.beginPath();
+    contexto.arc(x, y, raio, 0, Math.PI * 2);
+    contexto.fill();
+}
+
+function textoCentral(mensagem) {
+    contexto.fillStyle = 'white';
+    contexto.font = "30px Arial";
+    contexto.textAlign = 'center';
+    contexto.fillText(mensagem, tela.width / 2, tela.height / 2);
+}
+
+function desenharJogo() {
+    contexto.fillStyle = '#222';
+    contexto.fillRect(0, 0, tela.width, tela.height);
+
+    // Linha central
+    contexto.fillStyle = 'white';
+    contexto.fillRect(tela.width / 2 - 1, 0, 2, tela.height);
+
+    // Raquetes
+    raquete(10, jogador1, larguraRaquete, alturaRaquete, "white");
+    raquete(tela.width - 20, cpu, larguraRaquete, alturaRaquete, "white");
+
+    // Bola
+    bola(bolaX, bolaY, raioBola, 'white');
+
+    // Placar
+    contexto.font = "20px Arial";
+    contexto.fillStyle = "white";
+    contexto.fillText(`Jogador: ${pontosJogador}`, 100, 30);
+    contexto.fillText(`GPT: ${pontosCPU}`, tela.width - 100, 30);
+}
+
+function atualizarJogo() {
+    bolaX += velocidadeBolaX;
+    bolaY += velocidadeBolaY;
+
+    // Rebater no topo e base
+    if (bolaY + raioBola > tela.height || bolaY - raioBola < 0) {
+        velocidadeBolaY = -velocidadeBolaY;
+    }
+
+    // CPU segue a bola
+    cpu += (bolaY - (cpu + alturaRaquete / 2)) * fatorDificuldade;
+
+    // Limites da CPU
+    if (cpu < 0) cpu = 0;
+    if (cpu + alturaRaquete > tela.height) cpu = tela.height - alturaRaquete;
+
+    // Colisão com jogador
+    if (bolaX - raioBola < 20 && bolaY > jogador1 && bolaY < jogador1 + alturaRaquete) {
+        velocidadeBolaX = -velocidadeBolaX;
+        somRaquete.play();
+    }
+
+    // Colisão com CPU
+    if (bolaX + raioBola > tela.width - 20 && bolaY > cpu && bolaY < cpu + alturaRaquete) {
+        velocidadeBolaX = -velocidadeBolaX;
+        somRaquete.play();
+    }
+
+    // Ponto
+    if (bolaX < 0) {
+        pontosCPU++;
+        somPonto.play();
+        reiniciarBola();
+    }
+    if (bolaX > tela.width) {
+        pontosJogador++;
+        somPonto.play();
+        reiniciarBola();
+    }
+
+    // Checar vitória
+    if (pontosJogador >= 5) {
+        jogoAtivo = false;
+        somVitoria.play();
+        textoCentral("Jogador ganhou!!");
+    }
+    if (pontosCPU >= 5) {
+        jogoAtivo = false;
+        somVitoria.play();
+        textoCentral("O GPT venceu!");
+    }
+}
+
+function reiniciarBola() {
+    bolaX = tela.width / 2;
+    bolaY = tela.height / 2;
+    velocidadeBolaX = (Math.random() > 0.5 ? 4 : -4);
+    velocidadeBolaY = (Math.random() > 0.5 ? 4 : -4);
+}
+
+function loopJogo() {
+    if (jogoAtivo) {
+        atualizarJogo();
+        desenharJogo();
+        requestAnimationFrame(loopJogo);
+    } else {
+        desenharJogo();
+    }
+}
+
+function iniciarJogo(dif) {
+    dificuldade = dif;
+    if (dif == 'fácil') fatorDificuldade = 0.06;
+    else if (dif == 'médio') fatorDificuldade = 0.1;
+    else fatorDificuldade = 0.16;
+
+    jogador1 = tela.height / 2 - alturaRaquete / 2;
+    cpu = tela.height / 2 - alturaRaquete / 2;
+    bolaX = tela.width / 2;
+    bolaY = tela.height / 2;
+    velocidadeBolaX = 4;
+    velocidadeBolaY = 4;
+    pontosJogador = 0;
+    pontosCPU = 0;
+    jogoAtivo = true;
+    loopJogo();
+}
+</script>
+
+</body>
+</html>
