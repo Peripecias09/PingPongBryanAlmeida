@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo do Ping Pong</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+        }
+
+        canvas {
+            border: 15px solid blue;
+            background-color: brown;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="telaJogo" width="400" height="400">Seu navegador não funciona o Canvas no HTML5.</canvas>
+</body>
+<script>
+    const tela = document.getElementById("telaJogo");
+    const contexto = tela.getContext("2d");
+
+    //Construção da Raquete e da Bola
+    const altturaRaquete = 80;
+    const larguraRaquete = 10;
+    //bola
+    const raioBola = 7;
+
+    //Posições inicias do jogador, cpu e da bola
+    //jogador 1
+    let jogador1 = tela.height / 2 - altturaRaquete / 2;
+    //CPU
+    let cpu = tela.height / 2 - altturaRaquete / 2;
+    //bola
+    let bolaY = tela.width / 2;
+    let bolaX = tela.height / 2;
+    let velocidadeBolaX = 4;
+    let velocidadeBolaY = 4;
+
+    //Movimentação de Requete com o mouse
+    document.addEventListener('mousemove', (evento) => {
+        let retangulo = tela.getBoundingClientRect();
+        jogador1 = evento.clientY - retangulo.top - altturaRaquete / 2;
+    })
+
+    //Função para desenhar a raquete
+    function raquete(x, y, largura, alttura, cor) {
+        contexto.fillStyle = cor;
+        contexto.fillRect(x, y, largura, alttura);
+    }
+
+    //Função para deenha a bola
+    function bola(x, y, raio, cor) {
+        contexto.fillStyle = cor;
+        contexto.beginPath();
+        contexto.arc(x, y, raio, 0, Math.PI * 2);
+        contexto.fill();
+    }
+
+    //Função de reiniciar a posição da bola
+    function reiniciarBola() {
+        bolaX = tela.width / 2;
+        bolaY = tela.height / 2;
+        velocidadeBolaX = -velocidadeBolaX;
+        velocidadeBolaY = 4;
+    }
+
+    //Função de Desenhar os elementos do jogo
+    function desenharJogo() {
+        //fundo da quadra
+        raquete(0, 0, tela.width, tela.height, "brown");
+
+        //Raquete Jogador 1 e CPU
+        raquete(10, jogador1, larguraRaquete, altturaRaquete, "white");
+        raquete(tela.width - 20, cpu, larguraRaquete, altturaRaquete, "black");
+
+        //Bola
+        bola(bolaX, bolaY, raioBola, 'green');
+    }
+
+    function atualizarJogo() {
+        bolaX += velocidadeBolaX;
+        bolaY += velocidadeBolaY;
+
+        //Rebater a bola no teto e na base
+        if (bolaY + raioBola > tela.height || bolaY - raioBola < 0) {
+            velocidadeBolaY = -velocidadeBolaY;
+        }
+
+        //Movimentação da CPU
+        cpu += ((bolaY - (cpu + altturaRaquete / 2))) * 0.1;
+
+        //Colisão com a raquete do jogador
+        if (bolaX - raioBola < 20 && bolaY > jogador1 && bolaY < jogador1 + altturaRaquete) {
+            velocidadeBolaX = -velocidadeBolaX;
+        }
+
+        //Colisão com a raquete da CPU
+        if (bolaX + raioBola > tela.width - 20 && bolaY > cpu && bolaY < cpu + altturaRaquete) {
+            velocidadeBolaX = -velocidadeBolaX;
+        }
+
+        //Marcação dos pontos (bola sai da tela)
+        if (bolaX < 0 || bolaX > tela.width) {
+            reiniciarBola();
+        }
+    }
+
+    function loopJogo() {
+        atualizarJogo();
+        desenharJogo();
+        requestAnimationFrame(loopJogo);
+    }
+
+    //Iniciar o jogo
+    loopJogo();
+</script>
+
+</html>
